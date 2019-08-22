@@ -1,0 +1,11 @@
+{
+    "name": "andrewdo/php-double-ratchet",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Andrew Do",
+            "email": "me@andrewdo.com"
+        }
+    ],
+    "require": {}
+}
