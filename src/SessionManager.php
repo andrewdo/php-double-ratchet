@@ -37,16 +37,18 @@ class SessionManager
      * @param Key $ourPrivateKey
      * @param Key $theirPublicKey
      * @param Key $preKeyPublicKey
-     * @param array $options
+     * @param Key|null $preKeyPrivateKey if given, assumes we are receiving the session create message
      * @param LoggerInterface $logger
+     * @param array<string|mixed> $options
      * @throws Exception
      */
     public function __construct(
         Key $ourPrivateKey,
         Key $theirPublicKey,
         Key $preKeyPublicKey,
-        array $options,
-        LoggerInterface $logger = null
+        Key $preKeyPrivateKey = null,
+        LoggerInterface $logger = null,
+        array $options = []
     ) {
         $this->logger = $logger === null ? new NullLogger() : $logger;
 
@@ -54,8 +56,14 @@ class SessionManager
         $this->theirPublicKey = $theirPublicKey;
 
         // generate root key
-        $secret1 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
-        $secret2 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $preKeyPublicKey->getValue());
+        if ($preKeyPrivateKey === null) {
+            $secret1 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
+            $secret2 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $preKeyPublicKey->getValue());
+        } else {
+            $secret1 = sharedKey($preKeyPrivateKey->getValue(), $preKeyPublicKey->getValue());
+            $secret2 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
+        }
+
         $this->rootKey = sharedKey($secret1, $secret2);
 
         $this->logger->debug('Generated secret1: ' . $secret1);
