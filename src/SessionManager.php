@@ -7,16 +7,12 @@ use function Curve25519\sharedKey;
 
 class SessionManager
 {
-    /**
-     * The json key name to use when sending/receiving ratchet keys
-     * @var string
-     */
-    const RATCHET_DATA_KEY = 'ratchet_key';
+    /** The json key name to use when sending/receiving ratchet keys */
     const HASHING_ALGORITHM = 'sha256';
     const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
 
-    /** @var Key */
-    private $ourPrivateKey;
+    /** @var KeyPair */
+    private $ourIdentity;
     /** @var Key */
     private $theirPublicKey;
     /** @var Key */
@@ -29,32 +25,41 @@ class SessionManager
     private $logger;
     /** @var KeyPair|null */
     private $lastRatchetKey = false;
+    /** @var string */
+    private $ratchetDataKey;
 
     /**
      * @param Key $ourPrivateKey
      * @param Key $theirPublicKey
      * @param Key $preKeyPublicKey
+     * @param array $options
      * @param LoggerInterface $logger
+     * @throws Exception
      */
     public function __construct(
         Key $ourPrivateKey,
         Key $theirPublicKey,
         Key $preKeyPublicKey,
+        array $options,
         LoggerInterface $logger = null
     ) {
         $this->logger = $logger === null ? new NullLogger() : $logger;
 
-        $this->ourPrivateKey = $ourPrivateKey;
+        $this->ourIdentity = new KeyPair($ourPrivateKey);
         $this->theirPublicKey = $theirPublicKey;
 
         // generate root key
-        $secret1 = sharedKey($this->ourPrivateKey->getValue(), $theirPublicKey->getValue());
-        $secret2 = sharedKey($this->ourPrivateKey->getValue(), $preKeyPublicKey->getValue());
+        $secret1 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
+        $secret2 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $preKeyPublicKey->getValue());
         $this->rootKey = sharedKey($secret1, $secret2);
 
         $this->logger->debug('Generated secret1: ' . $secret1);
         $this->logger->debug('Generated secret2: ' . $secret2);
         $this->logger->debug('Generated root key: ' . $this->rootKey);
+
+        $this->ratchetDataKey = array_key_exists('ratchet_data_key', $options)
+            ? $options['ratchet_data_key']
+            : 'ratchet_key';
 
         $this->getNextChainKey();
     }
@@ -110,9 +115,10 @@ class SessionManager
         if ($this->lastRatchetKey === null) {
             $this->lastRatchetKey = new KeyPair(self::getNewPrivateKey());
 
-            $data[self::RATCHET_DATA_KEY] = $this->lastRatchetKey->getPublicKey();
+            $data[$this->ratchetDataKey] = $this->lastRatchetKey->getPublicKey();
         }
 
+        // the first ratchet
         $messageKey = $this->getNextMessageKey();
 
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(self::ENCRYPTION_ALGORITHM));
@@ -149,12 +155,12 @@ class SessionManager
         }
 
         // require a ratchet key if we have sent a message with a ratchet key that was not responded to
-        if ($this->lastRatchetKey !== null && !property_exists($data, self::RATCHET_DATA_KEY)) {
+        if ($this->lastRatchetKey !== null && !property_exists($data, $this->ratchetDataKey)) {
             throw new Exception('Missing ratchet key in message');
         }
 
         if ($this->lastRatchetKey !== null) {
-            $this->ratchetChainKey(new Key($data->{self::RATCHET_DATA_KEY}));
+            $this->ratchetRootKey(new Key($data->{$this->ratchetDataKey}));
         }
 
         return $data;
@@ -163,12 +169,14 @@ class SessionManager
     /**
      * @param Key $theirRatchetPublicKey
      */
-    private function ratchetChainKey(Key $theirRatchetPublicKey) : void
+    private function ratchetRootKey(Key $theirRatchetPublicKey) : void
     {
         $ratchetSecret = sharedKey($this->lastRatchetKey->getPrivateKey(), $theirRatchetPublicKey->getValue());
         Assert::that(strlen($ratchetSecret))
             ->eq('32', 'Shared ratchet secret must be 32 bytes');
 
-        $this->chainKey = hash(self::HASHING_ALGORITHM, $ratchetSecret);
+        $this->rootKey = hash(self::HASHING_ALGORITHM, $ratchetSecret);
+
+        $this->getNextChainKey();
     }
 }
