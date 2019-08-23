@@ -3,6 +3,9 @@
 namespace DoubleRatchet;
 
 use Assert\Assert;
+use Assert\AssertionFailedException;
+use DoubleRatchet\Exceptions\DecryptionFailedException;
+use DoubleRatchet\Exceptions\EncryptionFailedException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use function Curve25519\sharedKey;
@@ -24,12 +27,12 @@ class SessionManager
     private $rootKey;
     /** @var Key */
     private $chainKey;
-    /** @var Key */
-    private $messageKey;
+    /** @var Key|null */
+    private $previousChainKey;
     /** @var LoggerInterface */
     private $logger;
     /** @var KeyPair|null */
-    private $lastRatchetKey = false;
+    private $lastRatchetKey;
     /** @var string */
     private $ratchetDataKey;
 
@@ -78,6 +81,52 @@ class SessionManager
     }
 
     /**
+     * @param Key $secret
+     * @param string $message
+     * @return string
+     * @throws EncryptionFailedException
+     */
+    private static function encrypt(Key $secret, string $message) : string
+    {
+        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(self::ENCRYPTION_ALGORITHM));
+        $encrypted = openssl_encrypt(
+            $message,
+            self::ENCRYPTION_ALGORITHM,
+            $secret->getValue(),
+            0,
+            $iv
+        );
+        if ($encrypted === false) {
+            throw new EncryptionFailedException('Failed to encrypt message ' . $message);
+        }
+
+        return $encrypted . ':' . base64_encode($iv);
+    }
+
+    /**
+     * @param Key $secret
+     * @param string $message
+     * @return string
+     * @throws DecryptionFailedException
+     */
+    private static function decrypt(Key $secret, string $message) : string
+    {
+        try {
+            $parts = explode(':', $message);
+            Assert::that(count($parts))
+                ->eq(2, 'Message must include IV value');
+
+            $decrypted = openssl_decrypt($parts[0], 'aes-256-cbc', $secret->getValue(), 0, base64_decode($parts[1]));
+            Assert::that($decrypted)
+                ->notEq(false, 'Unable to decrypt message');
+        } catch (AssertionFailedException $e) {
+            throw new DecryptionFailedException($e->getMessage());
+        }
+
+        return $decrypted;
+    }
+
+    /**
      * @param Key $key
      * @return Key
      */
@@ -95,7 +144,7 @@ class SessionManager
      */
     private function getNextChainKey() : Key
     {
-        $this->chainKey = hash('sha-256', $this->rootKey, 0x1);
+        $this->chainKey = hash(self::HASHING_ALGORITHM, $this->rootKey, 0x1);
 
         return new Key($this->chainKey);
     }
@@ -105,9 +154,24 @@ class SessionManager
      */
     private function getNextMessageKey() : Key
     {
-        $this->messageKey = hash('sha-256', $this->chainKey, 0x1);
+        $this->previousChainKey = $this->chainKey;
 
-        return new Key($this->messageKey);
+        $messageKey = hash(self::HASHING_ALGORITHM, $this->chainKey, 0x1);
+        $this->chainKey = hash(self::HASHING_ALGORITHM, $this->chainKey, 0x2);
+
+        return new Key($messageKey);
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function usePreviousChainKey() : void
+    {
+        if ($this->previousChainKey === null) {
+            throw new Exception('Missing previous chain key');
+        }
+
+        $this->chainKey = $this->previousChainKey;
     }
 
     /**
@@ -115,7 +179,7 @@ class SessionManager
      * @return string
      * @throws Exception
      */
-    public function encrypt(array $data) : string
+    public function encryptData(array $data) : string
     {
         // send a ratchet key with the first message that is not responded to
         if ($this->lastRatchetKey === null) {
@@ -125,48 +189,51 @@ class SessionManager
         }
 
         // the first ratchet
-        $messageKey = $this->getNextMessageKey();
+        try {
+            $messageKey = $this->getNextMessageKey();
+            $encryptedMessage = $this->encrypt($messageKey, json_encode($data));
+        } catch (EncryptionFailedException $e) {
+            $this->usePreviousChainKey();
 
-        $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(self::ENCRYPTION_ALGORITHM));
-        $encrypted = openssl_encrypt(json_encode($data), self::ENCRYPTION_ALGORITHM, $messageKey, 0, $iv);
-        $encrypted = $encrypted . ':' . base64_encode($iv);
+            throw $e;
+        }
 
-        return $encrypted;
+        return $encryptedMessage;
     }
 
     /**
-     * @param string $message
+     * @param string $encryptedMessage
      * @return object
      * @throws Exception
      */
-    public function decrypt(string $message) : string
+    public function decryptMessage(string $encryptedMessage) : string
     {
-        $parts = explode(':', $message);
+        $parts = explode(':', $encryptedMessage);
         if (count($parts) != 2) {
-            throw new Exception('Unexpected payload ' . $message);
+            throw new Exception('Unexpected payload ' . $encryptedMessage);
         }
 
-        $previousMessageKey = $this->messageKey;
         $messageKey = $this->getNextMessageKey();
-        $decrypted = openssl_decrypt($parts[0], 'aes-256-cbc', $messageKey, 0, base64_decode($parts[1]));
-        if ($decrypted === false) {
-            $this->messageKey = $previousMessageKey;
+        try {
+            $decrypted = $this->decrypt($messageKey, $encryptedMessage);
 
-            throw new Exception('Failed to decrypt message ' . $message);
-        }
+            $data = json_decode($decrypted);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                throw new Exception('Decrypted message failed json_decode with error ' . json_last_error_msg());
+            }
 
-        $data = json_decode($decrypted);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception('Decrypted message failed json_decode with error ' . json_last_error_msg());
-        }
+            // require a ratchet key if we have sent a message with a ratchet key that was not responded to
+            if ($this->lastRatchetKey !== null && !property_exists($data, $this->ratchetDataKey)) {
+                throw new Exception('Missing ratchet key in message');
+            }
 
-        // require a ratchet key if we have sent a message with a ratchet key that was not responded to
-        if ($this->lastRatchetKey !== null && !property_exists($data, $this->ratchetDataKey)) {
-            throw new Exception('Missing ratchet key in message');
-        }
+            if ($this->lastRatchetKey !== null) {
+                $this->ratchetRootKey(new Key($data->{$this->ratchetDataKey}));
+            }
+        } catch (Exception $e) {
+            $this->usePreviousChainKey();
 
-        if ($this->lastRatchetKey !== null) {
-            $this->ratchetRootKey(new Key($data->{$this->ratchetDataKey}));
+            throw $e;
         }
 
         return $data;
@@ -184,5 +251,33 @@ class SessionManager
         $this->rootKey = hash(self::HASHING_ALGORITHM, $ratchetSecret);
 
         $this->getNextChainKey();
+    }
+
+    /**
+     * @return string
+     * @throws Exception
+     */
+    public function getAsSerializedAndEncrypted() : string
+    {
+        return $this->encrypt($this->ourIdentity->getPrivateKey(), serialize($this));
+    }
+
+    /**
+     * @param Key $secret
+     * @param string $encryptedAndSerialized
+     * @return self
+     * @throws Exception
+     */
+    public static function getFromEncryptedAndSerializedString(
+        Key $secret,
+        string $encryptedAndSerialized
+    ) : self {
+        $decrypted = self::decrypt($secret, $encryptedAndSerialized);
+        $self = unserialize($decrypted);
+        if ($self === false || !$self instanceof self) {
+            throw new Exception('Failed to unserialize SessionManager');
+        }
+
+        return $self;
     }
 }
