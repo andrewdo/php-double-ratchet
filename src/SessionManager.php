@@ -257,7 +257,7 @@ class SessionManager
      * @return string
      * @throws Exception
      */
-    public function getAsSerializedAndEncrypted() : string
+    public function getAsSerializedAndEncryptedString() : string
     {
         return $this->encrypt($this->ourIdentity->getPrivateKey(), serialize($this));
     }
@@ -273,7 +273,14 @@ class SessionManager
         string $encryptedAndSerialized
     ) : self {
         $decrypted = self::decrypt($secret, $encryptedAndSerialized);
-        $self = unserialize($decrypted);
+        $self = unserialize(
+            $decrypted,
+            [
+                'allowed_classes' => [
+                    self::class,
+                ]
+            ]
+        );
         if ($self === false || !$self instanceof self) {
             throw new Exception('Failed to unserialize SessionManager');
         }
