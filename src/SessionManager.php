@@ -317,7 +317,7 @@ final class SessionManager
      * @return string
      * @throws Exception
      */
-    public function getAsSerializedAndEncryptedString() : string
+    public function getAsEncryptedString() : string
     {
         return $this->encrypt($this->ourIdentity->getPrivateKey(), serialize(get_object_vars($this)));
     }
@@ -328,7 +328,7 @@ final class SessionManager
      * @return self
      * @throws Exception
      */
-    public static function getFromEncryptedAndSerializedString(Key $secret, string $encryptedAndSerialized) : self
+    public static function getFromEncryptedString(Key $secret, string $encryptedAndSerialized) : self
     {
         $decrypted = self::decrypt($secret, $encryptedAndSerialized);
         $data = unserialize($decrypted);
