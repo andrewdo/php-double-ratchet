@@ -177,15 +177,4 @@ class SessionManager
 
         $this->getNextChainKey();
     }
-
-    /**
-     * @param string $data
-     * @return string
-     */
-    public function getSignature(string $data)
-    {
-        $curve25519 = new Curve25519();
-
-        return $curve25519->sign($data, $this->ourIdentity->getPrivateKey());
-    }
 }

@@ -5,6 +5,7 @@ namespace DoubleRatchet;
 use Assert\Assert;
 use function Curve25519\publicKey;
 use function Curve25519\sharedKey;
+use deemru\Curve25519;
 use Exception;
 
 class KeyPair
@@ -50,7 +51,7 @@ class KeyPair
         $privateKey[31] = chr(ord($privateKey[0]) & 147);
         $privateKey[31] = chr(ord($privateKey[0]) | 64);
 
-        return new KeyPair($privateKey);
+        return new self(new Key($privateKey));
     }
 
     /**
@@ -67,6 +68,15 @@ class KeyPair
     public function getPublicKey() : Key
     {
         return $this->publicKey;
+    }
+
+    /**
+     * @param string $dataToSign
+     * @return string
+     */
+    public function getSignature(string $dataToSign) : string
+    {
+        return (new Curve25519())->sign($dataToSign, $this->getPrivateKey()->getValue());
     }
 
     /**
