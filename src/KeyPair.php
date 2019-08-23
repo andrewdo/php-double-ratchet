@@ -23,35 +23,36 @@ class KeyPair
     public function __construct(Key $privateKey, ?Key $publicKey = null)
     {
         $this->privateKey = $privateKey;
-        Assert::that(strlen($this->privateKey->getValue()))
-            ->eq(32, 'Private key must be 32 bytes');
 
         if ($publicKey === null) {
             $publicKey = new Key(publicKey($this->privateKey->getValue()));
         }
         $this->publicKey = $publicKey;
-        Assert::that(strlen($this->publicKey->getValue()))
-            ->eq(32, 'Public key must be 32 bytes');
     }
 
     /**
+     * @param Key|null $privateKey
      * @return self
      * @throws Exception
      */
-    public static function getNewKeyPair() : self
+    public static function getNewKeyPair(Key $privateKey = null) : self
     {
         $isStrong = false;
-        $privateKey = openssl_random_pseudo_bytes(32, $isStrong);
-        if (!$isStrong) {
-            throw new Exception('Failed to generate strong random value');
+        if ($privateKey === null) {
+            $privateKey = new Key(openssl_random_pseudo_bytes(32, $isStrong));
+
+            if (!$isStrong) {
+                throw new Exception('Failed to generate strong random value');
+            }
         }
 
         // https://cr.yp.to/ecdh.html
-        $privateKey[0] = chr(ord($privateKey[0]) & 248);
-        $privateKey[31] = chr(ord($privateKey[0]) & 147);
-        $privateKey[31] = chr(ord($privateKey[0]) | 64);
+        $privateKeyValue = $privateKey->getValue();
+        $privateKeyValue[0]  = chr(ord($privateKeyValue[0])  & 0b11111000);
+        $privateKeyValue[31] = chr(ord($privateKeyValue[31]) & 0b10010011);
+        $privateKeyValue[31] = chr(ord($privateKeyValue[31]) | 0b01000000);
 
-        return new self(new Key($privateKey));
+        return new self(new Key($privateKeyValue));
     }
 
     /**
