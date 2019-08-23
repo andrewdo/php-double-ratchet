@@ -11,6 +11,7 @@ use Psr\Log\NullLogger;
 use function Curve25519\sharedKey;
 use deemru\Curve25519;
 use Exception;
+use stdClass;
 
 class SessionManager
 {
@@ -230,10 +231,10 @@ class SessionManager
 
     /**
      * @param string $encryptedMessage
-     * @return object
+     * @return stdClass
      * @throws Exception
      */
-    public function decryptMessage(string $encryptedMessage) : string
+    public function decryptMessage(string $encryptedMessage) : stdClass
     {
         $parts = explode(':', $encryptedMessage);
         if (count($parts) != 2) {
@@ -251,7 +252,7 @@ class SessionManager
 
             // require a ratchet key if we have sent a message with a ratchet key that was not responded to
             if ($this->lastRatchetKey !== null && !property_exists($data, $this->ratchetDataKey)) {
-                throw new Exception('Missing ratchet key in message');
+                throw new Exception('Missing ratchet key in response');
             }
 
             if ($this->lastRatchetKey !== null) {
