@@ -80,6 +80,16 @@ class KeyPair
     }
 
     /**
+     * @param string $signature
+     * @param string $message
+     * @return bool
+     */
+    public function isSignatureValid(string $signature, string $message) : bool
+    {
+        return $this->publicKey->isSignatureValid($signature, $message);
+    }
+
+    /**
      * @param Key $theirPublicKey
      * @return string|null
      */

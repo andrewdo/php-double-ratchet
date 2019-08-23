@@ -3,6 +3,7 @@
 namespace DoubleRatchet;
 
 use Assert\Assert;
+use deemru\Curve25519;
 use JsonSerializable;
 
 class Key implements JsonSerializable
@@ -27,6 +28,16 @@ class Key implements JsonSerializable
     public function getValue() : string
     {
         return $this->value;
+    }
+
+    /**
+     * @param string $signature
+     * @param string $message
+     * @return bool
+     */
+    public function isSignatureValid(string $signature, string $message) : bool
+    {
+        return (new Curve25519())->verify($signature, $message, $this->getValue());
     }
 
     /**
