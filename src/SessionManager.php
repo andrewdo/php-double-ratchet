@@ -84,9 +84,25 @@ class SessionManager
     }
 
     /**
+     * @return KeyPair
+     */
+    public function getOurIdentity() : KeyPair
+    {
+        return $this->ourIdentity;
+    }
+
+    /**
      * @return Key
      */
-    public function getPreKeyPublicKey()
+    public function getTheirPublicKey() : Key
+    {
+        return $this->theirPublicKey;
+    }
+
+    /**
+     * @return Key
+     */
+    public function getPreKeyPublicKey() : Key
     {
         return $this->preKeyPublicKey;
     }
