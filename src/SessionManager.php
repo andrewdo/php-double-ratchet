@@ -83,6 +83,9 @@ class SessionManager
         $this->getNextChainKey();
     }
 
+    /**
+     * @return Key
+     */
     public function getPreKeyPublicKey()
     {
         return $this->preKeyPublicKey;
