@@ -1,6 +1,7 @@
 <?php
 
 use Assert\Assert;
+use deemru\Curve25519;
 
 class Key implements JsonSerializable
 {

@@ -4,6 +4,7 @@ use Assert\Assert;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use function Curve25519\sharedKey;
+use deemru\Curve25519;
 
 class SessionManager
 {
@@ -65,23 +66,16 @@ class SessionManager
     }
 
     /**
+     * @param Key $key
      * @return Key
-     * @throws Exception
      */
-    public static function getNewPrivateKey() : Key
+    public function getKeySignature(Key $key) : Key
     {
-        $isStrong = false;
-        $privateKey = openssl_random_pseudo_bytes(32, $isStrong);
-        if (!$isStrong) {
-            throw new Exception('Failed to generate strong random value');
-        }
+        $curve25519 = new Curve25519();
+        Assert::that(strlen($key))
+            ->eq(32, 'Key to sign must be 32 bytes');
 
-        // https://cr.yp.to/ecdh.html
-        $privateKey[0] = chr(ord($privateKey[0]) & 248);
-        $privateKey[31] = chr(ord($privateKey[0]) & 147);
-        $privateKey[31] = chr(ord($privateKey[0]) | 64);
-
-        return new Key($privateKey);
+        return new Key($curve25519->sign($key, $this->ourIdentity->getPrivateKey()->getValue()));
     }
 
     /**
@@ -113,7 +107,7 @@ class SessionManager
     {
         // send a ratchet key with the first message that is not responded to
         if ($this->lastRatchetKey === null) {
-            $this->lastRatchetKey = new KeyPair(self::getNewPrivateKey());
+            $this->lastRatchetKey = KeyPair::getNewKeyPair();
 
             $data[$this->ratchetDataKey] = $this->lastRatchetKey->getPublicKey();
         }
@@ -178,5 +172,16 @@ class SessionManager
         $this->rootKey = hash(self::HASHING_ALGORITHM, $ratchetSecret);
 
         $this->getNextChainKey();
+    }
+
+    /**
+     * @param string $data
+     * @return string
+     */
+    public function getSignature(string $data)
+    {
+        $curve25519 = new Curve25519();
+
+        return $curve25519->sign($data, $this->ourIdentity->getPrivateKey());
     }
 }

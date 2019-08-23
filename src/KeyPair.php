@@ -16,7 +16,7 @@ class KeyPair
      * @param Key|null $publicKey
      * @throws Exception
      */
-    public function __construct(Key $privateKey = null, Key $publicKey = null)
+    public function __construct(?Key $privateKey = null, ?Key $publicKey = null)
     {
         if ($privateKey === null) {
             $privateKey = Key::getNewPrivateKey();
@@ -32,6 +32,26 @@ class KeyPair
         $this->publicKey = $publicKey;
         Assert::that(strlen($this->publicKey->getValue()))
             ->eq(32, 'Public key must be 32 bytes');
+    }
+
+    /**
+     * @return self
+     * @throws Exception
+     */
+    public static function getNewKeyPair() : self
+    {
+        $isStrong = false;
+        $privateKey = openssl_random_pseudo_bytes(32, $isStrong);
+        if (!$isStrong) {
+            throw new Exception('Failed to generate strong random value');
+        }
+
+        // https://cr.yp.to/ecdh.html
+        $privateKey[0] = chr(ord($privateKey[0]) & 248);
+        $privateKey[31] = chr(ord($privateKey[0]) & 147);
+        $privateKey[31] = chr(ord($privateKey[0]) | 64);
+
+        return new KeyPair($privateKey);
     }
 
     /**
