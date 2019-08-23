@@ -12,6 +12,7 @@ use function Curve25519\sharedKey;
 use deemru\Curve25519;
 use Exception;
 use stdClass;
+use ReflectionClass;
 
 class SessionManager
 {
@@ -218,7 +219,7 @@ class SessionManager
         if ($this->lastRatchetKey === null) {
             $this->lastRatchetKey = KeyPair::getNewKeyPair();
 
-            $data[$this->ratchetDataKey] = $this->lastRatchetKey->getPublicKey();
+            $data[$this->ratchetDataKey] = $this->lastRatchetKey->getPublicKey()->__toString();
         }
 
         // the first ratchet
@@ -261,7 +262,7 @@ class SessionManager
             }
 
             if ($this->lastRatchetKey !== null) {
-                $this->ratchetRootKey(new Key($data->{$this->ratchetDataKey}));
+                $this->ratchetRootKey(new Key(base64_decode($data->{$this->ratchetDataKey})));
             }
         } catch (Exception $e) {
             $this->usePreviousChainKey();
@@ -292,7 +293,7 @@ class SessionManager
      */
     public function getAsSerializedAndEncryptedString() : string
     {
-        return $this->encrypt($this->ourIdentity->getPrivateKey(), serialize($this));
+        return $this->encrypt($this->ourIdentity->getPrivateKey(), serialize(get_object_vars($this)));
     }
 
     /**
@@ -304,19 +305,20 @@ class SessionManager
     public static function getFromEncryptedAndSerializedString(Key $secret, string $encryptedAndSerialized) : self
     {
         $decrypted = self::decrypt($secret, $encryptedAndSerialized);
-        $self = unserialize(
-            $decrypted,
-            [
-                'allowed_classes' => [
-                    self::class,
-                ]
-            ]
-        );
+        $data = unserialize($decrypted);
 
-        if ($self === false || !$self instanceof self) {
+        $reflection = new ReflectionClass(self::class);
+        $newSelf = $reflection->newInstanceWithoutConstructor();
+        foreach ($data as $key => $value) {
+            if (property_exists($newSelf, $key)) {
+                $newSelf->$key = $value;
+            }
+        }
+
+        if ($newSelf === false || !$newSelf instanceof self) {
             throw new Exception('Failed to unserialize SessionManager');
         }
 
-        return $self;
+        return $newSelf;
     }
 }
