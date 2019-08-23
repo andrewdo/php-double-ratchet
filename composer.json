@@ -10,7 +10,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Andrewdo\\DoubleRatchet\\": "src"
+            "AndrewDo\\DoubleRatchet\\": "src"
         }
     },
     "require": {
