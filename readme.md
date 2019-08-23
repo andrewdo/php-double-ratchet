@@ -48,5 +48,9 @@ The session manager will handle encryption and decryption of JSON payloads, alon
 If you need to persist the `SessionManager` instance, you can use:
 ```php
 $sessionManagerString = $sessionManager->getAsEncryptedString();
-$sessionManager = SessionManager::getFromEncryptedString($ourIdentity->getPrivateKey(), $sessionManagerString);
+$sessionManager = SessionManager::getFromEncryptedString(
+    $ourIdentity->getPrivateKey(),
+    $sessionManagerString
+);
 ```
+
