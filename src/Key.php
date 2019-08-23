@@ -1,9 +1,6 @@
 <?php
 
-namespace AndrewDo\DoubleRatchet;
-
 use Assert\Assert;
-use JsonSerializable;
 
 class Key implements JsonSerializable
 {

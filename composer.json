@@ -2,6 +2,7 @@
     "name": "andrewdo/php-double-ratchet",
     "type": "library",
     "description": "Session manager for handling the double ratchet algorithm using Curve25519",
+    "license": "MIT",
     "authors": [
         {
             "name": "Andrew Do",
@@ -10,7 +11,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "AndrewDo\\DoubleRatchet\\": "src"
+            "DoubleRatchet\\": "src"
         }
     },
     "require": {

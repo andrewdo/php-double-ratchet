@@ -1,17 +1,15 @@
 <?php
 
-namespace AndrewDo\DoubleRatchet;
-
 use Assert\Assert;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use function Curve25519\sharedKey;
 use deemru\Curve25519;
-use Exception;
 
 class SessionManager
 {
     /** The json key name to use when sending/receiving ratchet keys */
+    const DEFAULT_RATCHET_DATA_KEY = 'ratchet_key';
     const HASHING_ALGORITHM = 'sha256';
     const ENCRYPTION_ALGORITHM = 'aes-256-cbc';
 
@@ -63,7 +61,7 @@ class SessionManager
 
         $this->ratchetDataKey = array_key_exists('ratchet_data_key', $options)
             ? $options['ratchet_data_key']
-            : 'ratchet_key';
+            : self::DEFAULT_RATCHET_DATA_KEY;
 
         $this->getNextChainKey();
     }
