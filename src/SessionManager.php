@@ -24,6 +24,8 @@ class SessionManager
     /** @var Key */
     private $theirPublicKey;
     /** @var Key */
+    private $preKeyPublicKey;
+    /** @var Key */
     private $rootKey;
     /** @var Key */
     private $chainKey;
@@ -57,6 +59,7 @@ class SessionManager
 
         $this->ourIdentity = new KeyPair($ourPrivateKey);
         $this->theirPublicKey = $theirPublicKey;
+        $this->preKeyPublicKey = $preKeyPublicKey;
 
         // generate root key
         if ($preKeyPrivateKey === null) {
@@ -78,6 +81,11 @@ class SessionManager
             : self::DEFAULT_RATCHET_DATA_KEY;
 
         $this->getNextChainKey();
+    }
+
+    public function getPreKeyPublicKey()
+    {
+        return $this->preKeyPublicKey;
     }
 
     /**
