@@ -1,8 +1,11 @@
 <?php
 
+namespace AndrewDo\DoubleRatchet;
+
 use Assert\Assert;
 use function Curve25519\publicKey;
 use function Curve25519\sharedKey;
+use Exception;
 
 class KeyPair
 {
@@ -12,16 +15,12 @@ class KeyPair
     private $publicKey;
 
     /**
-     * @param Key|null $privateKey
+     * @param Key $privateKey
      * @param Key|null $publicKey
      * @throws Exception
      */
-    public function __construct(?Key $privateKey = null, ?Key $publicKey = null)
+    public function __construct(Key $privateKey, ?Key $publicKey = null)
     {
-        if ($privateKey === null) {
-            $privateKey = Key::getNewPrivateKey();
-        }
-
         $this->privateKey = $privateKey;
         Assert::that(strlen($this->privateKey->getValue()))
             ->eq(32, 'Private key must be 32 bytes');
