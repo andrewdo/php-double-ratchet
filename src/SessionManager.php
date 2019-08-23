@@ -14,7 +14,7 @@ use Exception;
 use stdClass;
 use ReflectionClass;
 
-class SessionManager
+final class SessionManager
 {
     /** The json key name to use when sending/receiving ratchet keys */
     const DEFAULT_RATCHET_DATA_KEY = 'ratchet_key';
@@ -36,7 +36,9 @@ class SessionManager
     /** @var LoggerInterface */
     private $logger;
     /** @var KeyPair|null */
-    private $lastRatchetKey;
+    private $lastSentRatchetKey;
+    /** @var Key|null */
+    private $lastReceivedRatchetPublicKey;
     /** @var string */
     private $ratchetDataKey;
 
@@ -178,9 +180,11 @@ class SessionManager
      */
     private function getNextChainKey() : Key
     {
-        $this->chainKey = hash(self::HASHING_ALGORITHM, $this->rootKey, 0x1);
+        $this->previousChainKey = $this->chainKey;
 
-        return new Key($this->chainKey);
+        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue(), 0x1));
+
+        return $this->chainKey;
     }
 
     /**
@@ -190,10 +194,10 @@ class SessionManager
     {
         $this->previousChainKey = $this->chainKey;
 
-        $messageKey = hash(self::HASHING_ALGORITHM, $this->chainKey, 0x1);
-        $this->chainKey = hash(self::HASHING_ALGORITHM, $this->chainKey, 0x2);
+        $messageKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), 0x1));
+        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), 0x2));
 
-        return new Key($messageKey);
+        return $messageKey;
     }
 
     /**
@@ -216,16 +220,27 @@ class SessionManager
     public function encryptData(array $data) : string
     {
         // send a ratchet key with the first message that is not responded to
-        if ($this->lastRatchetKey === null) {
-            $this->lastRatchetKey = KeyPair::getNewKeyPair();
+        if ($this->lastSentRatchetKey === null) {
+            $this->lastSentRatchetKey = KeyPair::getNewKeyPair();
 
-            $data[$this->ratchetDataKey] = $this->lastRatchetKey->getPublicKey()->__toString();
+            $data[$this->ratchetDataKey] = $this->lastSentRatchetKey->getPublicKey()->__toString();
         }
 
         // the first ratchet
         try {
             $messageKey = $this->getNextMessageKey();
             $encryptedMessage = $this->encrypt($messageKey, json_encode($data));
+
+            // second ratchet
+            if ($this->lastReceivedRatchetPublicKey !== null && $this->lastSentRatchetKey !== null) {
+                $this->ratchetRootKey(
+                    $this->lastSentRatchetKey->getPrivateKey(),
+                    $this->lastReceivedRatchetPublicKey
+                );
+
+                $this->lastSentRatchetKey = null;
+                $this->lastReceivedRatchetPublicKey = null;
+            }
         } catch (EncryptionFailedException $e) {
             $this->usePreviousChainKey();
 
@@ -257,12 +272,21 @@ class SessionManager
             }
 
             // require a ratchet key if we have sent a message with a ratchet key that was not responded to
-            if ($this->lastRatchetKey !== null && !property_exists($data, $this->ratchetDataKey)) {
+            if ($this->lastSentRatchetKey !== null && !property_exists($data, $this->ratchetDataKey)) {
                 throw new Exception('Missing ratchet key in response');
             }
 
-            if ($this->lastRatchetKey !== null) {
-                $this->ratchetRootKey(new Key(base64_decode($data->{$this->ratchetDataKey})));
+            $receivedRatchetPublicKey = new Key(base64_decode($data->{$this->ratchetDataKey}));
+            if ($this->lastSentRatchetKey !== null) {
+                // also the second ratchet
+                $this->ratchetRootKey(
+                    $this->lastSentRatchetKey->getPrivateKey(),
+                    $receivedRatchetPublicKey
+                );
+
+                $this->lastSentRatchetKey = null;
+            } else {
+                $this->lastReceivedRatchetPublicKey = $receivedRatchetPublicKey;
             }
         } catch (Exception $e) {
             $this->usePreviousChainKey();
@@ -274,15 +298,17 @@ class SessionManager
     }
 
     /**
+     * @param Key $ourRatchetPrivateKey
      * @param Key $theirRatchetPublicKey
      */
-    private function ratchetRootKey(Key $theirRatchetPublicKey) : void
+    private function ratchetRootKey(Key $ourRatchetPrivateKey, Key $theirRatchetPublicKey) : void
     {
-        $ratchetSecret = sharedKey($this->lastRatchetKey->getPrivateKey(), $theirRatchetPublicKey->getValue());
+        $ratchetSecret = sharedKey($ourRatchetPrivateKey->getValue(), $theirRatchetPublicKey->getValue());
+        $this->logger->debug(base64_encode($ratchetSecret));
         Assert::that(strlen($ratchetSecret))
             ->eq('32', 'Shared ratchet secret must be 32 bytes');
 
-        $this->rootKey = hash(self::HASHING_ALGORITHM, $ratchetSecret);
+        $this->rootKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue(), $ratchetSecret));
 
         $this->getNextChainKey();
     }
