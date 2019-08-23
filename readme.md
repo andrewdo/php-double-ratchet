@@ -31,15 +31,15 @@ if (!$theirPublicKey->isValidSignature($theirPreKeySignature, $theirPreKey->getV
 
 Then you can create a `SessionManager` instance.
 
-**NOTE:** If you are the one that generated the `Pre Key` and you have its public key,
-you will need to pass it along.
+**NOTE:** If you are the one that generated the `Pre Key` and you have its private key, you will need to pass it along.
 ```php
 $sessionManager = new SessionManager(
     $ourIdentity->getPrivateKey(),
     $theirPublicKey,
     KeyPair::getNewKeyPair()->getPublicKey(),
     $preKeyPrivateKey ?: null,
-    new TestLogger()
+    $logger ?: null,
+    $options ?: []
 );
 ```
 

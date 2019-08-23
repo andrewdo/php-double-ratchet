@@ -152,7 +152,13 @@ final class SessionManager
             Assert::that(count($parts))
                 ->eq(2, 'Message must include IV value');
 
-            $decrypted = openssl_decrypt($parts[0], 'aes-256-cbc', $secret->getValue(), 0, base64_decode($parts[1]));
+            $decrypted = openssl_decrypt(
+                $parts[0],
+                self::ENCRYPTION_ALGORITHM,
+                $secret->getValue(),
+                0,
+                base64_decode($parts[1])
+            );
             Assert::that($decrypted)
                 ->notEq(false, 'Unable to decrypt message');
         } catch (AssertionFailedException $e) {
