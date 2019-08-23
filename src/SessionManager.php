@@ -71,10 +71,10 @@ class SessionManager
             $secret2 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
         }
 
-        $this->rootKey = sharedKey($secret1, $secret2);
+        $this->rootKey = new Key(sharedKey($secret1, $secret2));
 
-        $this->logger->debug('Generated secret1: ' . $secret1);
-        $this->logger->debug('Generated secret2: ' . $secret2);
+        $this->logger->debug('Generated secret1: ' . base64_encode($secret1));
+        $this->logger->debug('Generated secret2: ' . base64_encode($secret2));
         $this->logger->debug('Generated root key: ' . $this->rootKey);
 
         $this->ratchetDataKey = array_key_exists('ratchet_data_key', $options)
@@ -296,10 +296,8 @@ class SessionManager
      * @return self
      * @throws Exception
      */
-    public static function getFromEncryptedAndSerializedString(
-        Key $secret,
-        string $encryptedAndSerialized
-    ) : self {
+    public static function getFromEncryptedAndSerializedString(Key $secret, string $encryptedAndSerialized) : self
+    {
         $decrypted = self::decrypt($secret, $encryptedAndSerialized);
         $self = unserialize(
             $decrypted,
@@ -309,6 +307,7 @@ class SessionManager
                 ]
             ]
         );
+
         if ($self === false || !$self instanceof self) {
             throw new Exception('Failed to unserialize SessionManager');
         }
