@@ -1,0 +1,221 @@
+{
+    "_readme": [
+        "This file locks the dependencies of your project to a known state",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "This file is @generated automatically"
+    ],
+    "content-hash": "7767df421cfe3ab9604dc9367f20fa38",
+    "packages": [
+        {
+            "name": "beberlei/assert",
+            "version": "v3.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/beberlei/assert.git",
+                "reference": "ce139b6bf8f07fb8389d2c8e15b98dc24fdd93c7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/beberlei/assert/zipball/ce139b6bf8f07fb8389d2c8e15b98dc24fdd93c7",
+                "reference": "ce139b6bf8f07fb8389d2c8e15b98dc24fdd93c7",
+                "shasum": ""
+            },
+            "require": {
+                "php": "^7"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "*",
+                "phpstan/phpstan-shim": "*",
+                "phpunit/phpunit": ">=6.0.0 <8"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Assert\\": "lib/Assert"
+                },
+                "files": [
+                    "lib/Assert/functions.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "BSD-2-Clause"
+            ],
+            "authors": [
+                {
+                    "name": "Benjamin Eberlei",
+                    "role": "Lead Developer",
+                    "email": "kontakt@beberlei.de"
+                },
+                {
+                    "name": "Richard Quadling",
+                    "role": "Collaborator",
+                    "email": "rquadling@gmail.com"
+                }
+            ],
+            "description": "Thin assertion library for input validation in business models.",
+            "keywords": [
+                "assert",
+                "assertion",
+                "validation"
+            ],
+            "time": "2019-05-28T15:18:28+00:00"
+        },
+        {
+            "name": "deemru/curve25519",
+            "version": "1.0.6",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/deemru/Curve25519.git",
+                "reference": "ae87a8bd896661cae66964693e183c93ccf3e17c"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/deemru/Curve25519/zipball/ae87a8bd896661cae66964693e183c93ccf3e17c",
+                "reference": "ae87a8bd896661cae66964693e183c93ccf3e17c",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.6"
+            },
+            "require-dev": {
+                "deemru/abcode": "1.0.*"
+            },
+            "suggest": {
+                "ext-sodium": "Up to ~2000x faster sign/verify"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "deemru\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Dmitrii Pichulin",
+                    "email": "deem@deem.ru"
+                }
+            ],
+            "description": "Curve25519 sign/verify",
+            "homepage": "https://github.com/deemru/Curve25519",
+            "keywords": [
+                "Curve25519",
+                "sign",
+                "verify",
+                "wavesplatform"
+            ],
+            "time": "2019-07-26T09:32:50+00:00"
+        },
+        {
+            "name": "leigh/curve25519",
+            "version": "0.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/lt/PHP-Curve25519.git",
+                "reference": "c59f4250ac2770d0864df66ee89707d06196060a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/lt/PHP-Curve25519/zipball/c59f4250ac2770d0864df66ee89707d06196060a",
+                "reference": "c59f4250ac2770d0864df66ee89707d06196060a",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4"
+            },
+            "require-dev": {
+                "phpunit/phpunit": "~4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Curve25519\\": "lib"
+                },
+                "files": [
+                    "lib/functions.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Leigh T",
+                    "homepage": "https://github.com/lt"
+                }
+            ],
+            "description": "Pure PHP implementation of the Curve25519 Diffie-Hellman function",
+            "homepage": "https://github.com/lt/PHP-Curve25519",
+            "keywords": [
+                "ecdh",
+                "elliptic",
+                "security"
+            ],
+            "time": "2015-12-21T17:00:44+00:00"
+        },
+        {
+            "name": "psr/log",
+            "version": "1.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/php-fig/log.git",
+                "reference": "6c001f1daafa3a3ac1d8ff69ee4db8e799a654dd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/php-fig/log/zipball/6c001f1daafa3a3ac1d8ff69ee4db8e799a654dd",
+                "reference": "6c001f1daafa3a3ac1d8ff69ee4db8e799a654dd",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.0"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "1.0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "Psr\\Log\\": "Psr/Log/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "PHP-FIG",
+                    "homepage": "http://www.php-fig.org/"
+                }
+            ],
+            "description": "Common interface for logging libraries",
+            "homepage": "https://github.com/php-fig/log",
+            "keywords": [
+                "log",
+                "psr",
+                "psr-3"
+            ],
+            "time": "2018-11-20T15:27:04+00:00"
+        }
+    ],
+    "packages-dev": [],
+    "aliases": [],
+    "minimum-stability": "stable",
+    "stability-flags": [],
+    "prefer-stable": false,
+    "prefer-lowest": false,
+    "platform": {
+        "php": "^7.1.3",
+        "ext-json": "*",
+        "ext-openssl": "*"
+    },
+    "platform-dev": []
+}
