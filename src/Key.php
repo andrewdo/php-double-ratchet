@@ -1,6 +1,9 @@
 <?php
 
+namespace DoubleRatchet;
+
 use Assert\Assert;
+use JsonSerializable;
 
 class Key implements JsonSerializable
 {

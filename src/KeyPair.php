@@ -1,8 +1,11 @@
 <?php
 
+namespace DoubleRatchet;
+
 use Assert\Assert;
 use function Curve25519\publicKey;
 use function Curve25519\sharedKey;
+use Exception;
 
 class KeyPair
 {

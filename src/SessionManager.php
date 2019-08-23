@@ -1,10 +1,13 @@
 <?php
 
+namespace DoubleRatchet;
+
 use Assert\Assert;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 use function Curve25519\sharedKey;
 use deemru\Curve25519;
+use Exception;
 
 class SessionManager
 {
