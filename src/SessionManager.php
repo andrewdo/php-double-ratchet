@@ -14,6 +14,11 @@ use Exception;
 use stdClass;
 use ReflectionClass;
 
+/**
+ * There are 2 cases where we need to ratchet the Chain Key of the session:
+ * CASE_1 - we just sent a message with a ratchet key, after receiving a ratchet key from other party
+ * CASE_2 - we just received a message with a ratchet key, after sending a ratchet key to other party
+ */
 final class SessionManager
 {
     /** The json key name to use when sending/receiving ratchet keys */
@@ -237,7 +242,7 @@ final class SessionManager
             $messageKey = $this->getNextMessageKey();
             $encryptedMessage = $this->encrypt($messageKey, json_encode($data));
 
-            // second ratchet
+            // handle double ratchet CASE_1
             if ($this->lastReceivedRatchetPublicKey !== null && $this->lastSentRatchetKey !== null) {
                 $this->ratchetRootKey(
                     $this->lastSentRatchetKey->getPrivateKey(),
@@ -283,8 +288,9 @@ final class SessionManager
             }
 
             $receivedRatchetPublicKey = new Key(base64_decode($data->{$this->ratchetDataKey}));
+
+            // handle double ratchet CASE_2
             if ($this->lastSentRatchetKey !== null) {
-                // also the second ratchet
                 $this->ratchetRootKey(
                     $this->lastSentRatchetKey->getPrivateKey(),
                     $receivedRatchetPublicKey
