@@ -64,15 +64,20 @@ class SessionManager
 
         // generate root key
         if ($preKeyPrivateKey === null) {
+            // initiator... does not know Pre Key private key
             $secret1 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
             $secret2 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $preKeyPublicKey->getValue());
         } else {
-            $secret1 = sharedKey($preKeyPrivateKey->getValue(), $preKeyPublicKey->getValue());
-            $secret2 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
+            // receiver... generated the Pre Key so knows private key
+            $secret1 = sharedKey($this->ourIdentity->getPrivateKey()->getValue(), $theirPublicKey->getValue());
+            $secret2 = sharedKey($preKeyPrivateKey->getValue(), $theirPublicKey->getValue());
+
+            $this->logger->debug('PreKey private: ' . $preKeyPrivateKey);
         }
 
         $this->rootKey = new Key(sharedKey($secret1, $secret2));
 
+        $this->logger->debug('PreKey public: ' . $preKeyPublicKey);
         $this->logger->debug('Generated secret1: ' . base64_encode($secret1));
         $this->logger->debug('Generated secret2: ' . base64_encode($secret2));
         $this->logger->debug('Generated root key: ' . $this->rootKey);
