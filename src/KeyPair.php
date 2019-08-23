@@ -45,9 +45,9 @@ final class KeyPair
     }
 
     /**
-     * @return Key
+     * @return PrivateKey
      */
-    public function getPrivateKey() : Key
+    public function getPrivateKey() : PrivateKey
     {
         return $this->privateKey;
     }

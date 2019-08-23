@@ -48,7 +48,7 @@ final class SessionManager
     private $ratchetDataKey;
 
     /**
-     * @param Key $ourPrivateKey
+     * @param PrivateKey $ourPrivateKey
      * @param Key $theirPublicKey
      * @param Key $preKeyPublicKey
      * @param Key|null $preKeyPrivateKey if given, assumes we are receiving the session create message
@@ -57,7 +57,7 @@ final class SessionManager
      * @throws Exception
      */
     public function __construct(
-        Key $ourPrivateKey,
+        PrivateKey $ourPrivateKey,
         Key $theirPublicKey,
         Key $preKeyPublicKey,
         Key $preKeyPrivateKey = null,

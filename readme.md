@@ -16,7 +16,7 @@ First thing you'll want to do is either generate or load up your identity privat
 $ourIdentity = KeyPair::getNewKeyPair();
 
 // load from a base64 string
-$ourIdentity = new KeyPair(base64_decode($base64String));
+$ourIdentity = new KeyPair(new PrivateKey(base64_decode($base64String)));
 ```
 
 In order to start a session with another party, you'll need a signed `Pre Key` from them.
