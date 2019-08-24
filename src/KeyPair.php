@@ -67,7 +67,7 @@ final class KeyPair
      */
     public function getSignature(string $dataToSign) : string
     {
-        return (new Curve25519())->sign($dataToSign, $this->getPrivateKey()->getValue());
+        return $this->privateKey->getSignature($dataToSign);
     }
 
     /**
