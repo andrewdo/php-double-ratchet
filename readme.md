@@ -59,3 +59,12 @@ $sessionManager = SessionManager::getFromEncryptedString(
 );
 ```
 
+### Generating Pre Keys
+In order to receive an ecrypted message from someone, you will need to somehow give them your public key and a signed Pre Key.
+To generate one:
+```php
+$preKey = KeyPair::getNewKeyPair();
+$preKeyPublicKey = $preKey->getPublicKey();
+$signature = $ourIdentity->getSignature($preKeyPublicKey->getValue());
+```
+
