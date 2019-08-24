@@ -25,7 +25,7 @@ party's public key if you know it ahead of time.
 
 ```php
 $theirPublicKey = new Key(...their 32 byte public key...);
-$theirPreKey = new Key(...their 32 byte pre key public key...);
+$theirPreKeyPublicKey = new Key(...their 32 byte pre key public key...);
 $theirPreKeySignature = ...signature of the pre key...;
 if (!$theirPublicKey->isValidSignature($theirPreKeySignature, $theirPreKey->getValue())) {
     throw new Exception('Sketchy...');
@@ -39,7 +39,7 @@ Then you can create a `SessionManager` instance.
 $sessionManager = new SessionManager(
     $ourIdentity->getPrivateKey(),
     $theirPublicKey,
-    KeyPair::getNewKeyPair()->getPublicKey(),
+    $theirPreKeyPublicKey,
     $preKeyPrivateKey ?: null,  // if we are the receiver of the first message
     $logger ?: null,
     $options ?: []
