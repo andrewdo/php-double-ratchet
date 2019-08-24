@@ -20,10 +20,13 @@ $ourIdentity = new KeyPair(new PrivateKey(base64_decode($base64String)));
 ```
 
 In order to start a session with another party, you'll need a signed `Pre Key` from them.
+Signature verification is optional but suggested. You should probably also hard code the other
+party's public key if you know it ahead of time.
+
 ```php
-$theirPublicKey = new Key([their 32 byte public key]);
-$theirPreKey = new Key([their 32 byte pre key public key]);
-$theirPreKeySignature = [signature of the pre key];
+$theirPublicKey = new Key(...their 32 byte public key...);
+$theirPreKey = new Key(...their 32 byte pre key public key...);
+$theirPreKeySignature = ...signature of the pre key...;
 if (!$theirPublicKey->isValidSignature($theirPreKeySignature, $theirPreKey->getValue())) {
     throw new Exception('Sketchy...');
 } 
@@ -37,13 +40,15 @@ $sessionManager = new SessionManager(
     $ourIdentity->getPrivateKey(),
     $theirPublicKey,
     KeyPair::getNewKeyPair()->getPublicKey(),
-    $preKeyPrivateKey ?: null,
+    $preKeyPrivateKey ?: null,  // if we are the receiver of the first message
     $logger ?: null,
     $options ?: []
 );
 ```
 
 The session manager will handle encryption and decryption of JSON payloads, along with the double ratcheting of keys.
+It will include the Ratchet Key in each JSON request/response. By default, the key for this field is ratchet_key but can be changed
+using the options parameter of the SessionManager.
 
 If you need to persist the `SessionManager` instance, you can use:
 ```php
