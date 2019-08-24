@@ -50,6 +50,11 @@ The session manager will handle encryption and decryption of JSON payloads, alon
 It will include the Ratchet Key in each JSON request/response. By default, the key for this field is ratchet_key but can be changed
 using the options parameter of the SessionManager.
 
+```php
+$encryptedMessageStr = $sessionManager->encryptData(['grandmas_cookbook' => '...']);
+$decryptedData = $sessionManager->decryptMessage($encryptedMessageStr);
+```
+
 If you need to persist the `SessionManager` instance, you can use:
 ```php
 $sessionManagerString = $sessionManager->getAsEncryptedString();
