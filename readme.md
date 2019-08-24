@@ -53,6 +53,8 @@ using the options parameter of the SessionManager.
 ```php
 $encryptedMessageStr = $sessionManager->encryptData(['grandmas_cookbook' => '...']);
 $decryptedData = $sessionManager->decryptMessage($encryptedMessageStr);
+// var_dump($decryptedData)
+// array(2) { ["ratchet_key"]=> string(4) "asdf" ["grandmas_cookbook"]=> ... }
 ```
 
 If you need to persist the `SessionManager` instance, you can use:
