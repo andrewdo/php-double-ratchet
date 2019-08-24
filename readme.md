@@ -60,6 +60,9 @@ $decryptedData = $sessionManager->decryptMessage($encryptedMessageStr);
 If you need to persist the `SessionManager` instance, you can use:
 ```php
 $sessionManagerString = $sessionManager->getAsEncryptedString();
+// var_dump($sessionManagerString)
+// string(2801) "/6Iq=...A==:eoNnkPa2sCE0F8ezC9TJzA=="
+
 $sessionManager = SessionManager::getFromEncryptedString(
     $ourIdentity->getPrivateKey(),
     $sessionManagerString
