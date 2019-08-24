@@ -345,7 +345,7 @@ final class SessionManager
      */
     public function getAsEncryptedString() : string
     {
-        return $this->encrypt($this->ourIdentity->getPrivateKey(), serialize(get_object_vars($this)));
+        return $this->encrypt($this->ourIdentity->getPrivateKey(), json_encode(get_object_vars($this)));
     }
 
     /**
@@ -357,7 +357,10 @@ final class SessionManager
     public static function getFromEncryptedString(Key $secret, string $encryptedAndSerialized) : self
     {
         $decrypted = self::decrypt($secret, $encryptedAndSerialized);
-        $data = unserialize($decrypted);
+        $data = json_decode($decrypted, true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new Exception('Invalid decrypted payload');
+        }
 
         $reflection = new ReflectionClass(self::class);
         $newSelf = $reflection->newInstanceWithoutConstructor();
