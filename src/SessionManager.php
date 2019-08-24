@@ -1,9 +1,9 @@
 <?php
+declare(strict_types=1);
 
 namespace DoubleRatchet;
 
 use Assert\Assert;
-use Assert\AssertionFailedException;
 use DoubleRatchet\Exceptions\DecryptionFailedException;
 use DoubleRatchet\Exceptions\EncryptionFailedException;
 use Psr\Log\LoggerInterface;
@@ -11,14 +11,15 @@ use Psr\Log\NullLogger;
 use function Curve25519\sharedKey;
 use deemru\Curve25519;
 use Exception;
-use SebastianBergmann\CodeCoverage\Report\PHP;
+use LogicException;
 use stdClass;
 use ReflectionClass;
 
 /**
- * There are 2 cases where we need to ratchet the Chain Key of the session:
- * CASE_1 - we just sent a message with a ratchet key, after receiving a ratchet key from other party
- * CASE_2 - we just received a message with a ratchet key, after sending a ratchet key to other party
+ * For each message, generate a new Message Key by hashing the Chain Key, then updating the Chain Key with its hash
+ * There are 2 cases where we need to ratchet the Root Key of the session:
+ * CASE_1 - we just sent a message with a ratchet key, after we have received a ratchet key from the other party
+ * CASE_2 - we just received a message with a ratchet key, after we have set a ratchet key to other party
  */
 final class SessionManager
 {
@@ -130,6 +131,7 @@ final class SessionManager
      */
     private static function encrypt(Key $secret, string $message) : string
     {
+        // TODO: send chain and sequence number to handle out of order messages
         $iv = openssl_random_pseudo_bytes(openssl_cipher_iv_length(self::ENCRYPTION_ALGORITHM));
         $encrypted = openssl_encrypt(
             $message,
@@ -159,7 +161,7 @@ final class SessionManager
         try {
             $parts = explode(':', $message);
             Assert::that(count($parts))
-                ->eq(3, 'Message must include IV and HMAC values');
+                ->eq(3, 'Message must include encrypted string, IV and HMAC values');
 
             $decrypted = openssl_decrypt(
                 $parts[0],
@@ -177,7 +179,7 @@ final class SessionManager
 
             Assert::that($calculatedHmac)
                 ->eq($parts[2], 'HMAC value must match');
-        } catch (AssertionFailedException $e) {
+        } catch (Exception $e) {
             throw new DecryptionFailedException($e->getMessage());
         }
 
@@ -288,23 +290,29 @@ final class SessionManager
                 throw new Exception('Decrypted message failed json_decode with error ' . json_last_error_msg());
             }
 
-            // require a ratchet key if we have sent a message with a ratchet key that was not responded to
-            if ($this->lastSentRatchetKey !== null && !property_exists($data, $this->ratchetDataKey)) {
+            if (!property_exists($data, $this->ratchetDataKey)) {
                 throw new Exception('Missing ratchet key in response');
             }
-
             $receivedRatchetPublicKey = new Key(base64_decode($data->{$this->ratchetDataKey}));
+
+            if ($this->lastReceivedRatchetPublicKey !== null
+                && $this->lastReceivedRatchetPublicKey->getValue() !== $receivedRatchetPublicKey->getValue()
+            ) {
+                throw new LogicException('Received new ratchet key in response without processing last ratchet key');
+            }
 
             // handle double ratchet CASE_2
             if ($this->lastSentRatchetKey !== null) {
-                $this->ratchetRootKey(
-                    $this->lastSentRatchetKey->getPrivateKey(),
-                    $receivedRatchetPublicKey
-                );
+                if ($this->lastSentRatchetKey !== null) {
+                    $this->ratchetRootKey(
+                        $this->lastSentRatchetKey->getPrivateKey(),
+                        $receivedRatchetPublicKey
+                    );
 
-                $this->lastSentRatchetKey = null;
-            } else {
-                $this->lastReceivedRatchetPublicKey = $receivedRatchetPublicKey;
+                    $this->lastSentRatchetKey = null;
+                } else {
+                    $this->lastReceivedRatchetPublicKey = $receivedRatchetPublicKey;
+                }
             }
         } catch (Exception $e) {
             $this->usePreviousChainKey();
