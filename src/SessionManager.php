@@ -11,6 +11,7 @@ use Psr\Log\NullLogger;
 use function Curve25519\sharedKey;
 use deemru\Curve25519;
 use Exception;
+use SebastianBergmann\CodeCoverage\Report\PHP;
 use stdClass;
 use ReflectionClass;
 
@@ -141,7 +142,10 @@ final class SessionManager
             throw new EncryptionFailedException('Failed to encrypt message ' . $message);
         }
 
-        return $encrypted . ':' . base64_encode($iv);
+        $payload = $encrypted . ':' . base64_encode($iv);
+
+        // include HMAC
+        return $payload . ':' . base64_encode(hash_hmac(self::HASHING_ALGORITHM, $payload, $secret));
     }
 
     /**
@@ -155,7 +159,7 @@ final class SessionManager
         try {
             $parts = explode(':', $message);
             Assert::that(count($parts))
-                ->eq(2, 'Message must include IV value');
+                ->eq(3, 'Message must include IV and HMAC values');
 
             $decrypted = openssl_decrypt(
                 $parts[0],
@@ -166,6 +170,13 @@ final class SessionManager
             );
             Assert::that($decrypted)
                 ->notEq(false, 'Unable to decrypt message');
+
+            // verify HMAC value
+            $payload = implode(':', array_slice($parts, 0, 2));
+            $calculatedHmac = base64_encode(hash_hmac(self::HASHING_ALGORITHM, $payload, $secret));
+
+            Assert::that($calculatedHmac)
+                ->eq($parts[2], 'HMAC value must match');
         } catch (AssertionFailedException $e) {
             throw new DecryptionFailedException($e->getMessage());
         }
