@@ -279,11 +279,6 @@ final class SessionManager
      */
     public function decryptMessage(string $encryptedMessage) : stdClass
     {
-        $parts = explode(':', $encryptedMessage);
-        if (count($parts) != 2) {
-            throw new Exception('Unexpected payload ' . $encryptedMessage);
-        }
-
         $messageKey = $this->getNextMessageKey();
         try {
             $decrypted = $this->decrypt($messageKey, $encryptedMessage);
