@@ -206,7 +206,7 @@ final class SessionManager
     {
         $this->previousChainKey = $this->chainKey;
 
-        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue(), true));
+        $this->chainKey = new Key(hash_hmac(self::HASHING_ALGORITHM, $this->rootKey->getValue(), '2', true));
 
         return $this->chainKey;
     }
@@ -218,8 +218,8 @@ final class SessionManager
     {
         $this->previousChainKey = $this->chainKey;
 
-        $messageKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), true));
-        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), true));
+        $messageKey = new Key(hash_hmac(self::HASHING_ALGORITHM, $this->chainKey->getValue(), '1', true));
+        $this->chainKey = new Key(hash_hmac(self::HASHING_ALGORITHM, $this->chainKey->getValue(), '2', true));
 
         return $messageKey;
     }
@@ -335,10 +335,10 @@ final class SessionManager
 
         $this->rootKey = new Key(hash_hkdf(
             self::HASHING_ALGORITHM,
-            $this->rootKey->getValue(),
+            $ratchetSecret,
             0,
-            str_pad('', 32, "\0"),
-            $ratchetSecret
+            'php-double-ratchet',
+            $this->rootKey->getValue()
         ));
 
         $this->getNextChainKey();
