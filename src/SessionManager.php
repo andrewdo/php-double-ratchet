@@ -290,29 +290,28 @@ final class SessionManager
                 throw new Exception('Decrypted message failed json_decode with error ' . json_last_error_msg());
             }
 
-            if (!property_exists($data, $this->ratchetDataKey)) {
-                throw new Exception('Missing ratchet key in response');
-            }
-            $receivedRatchetPublicKey = new Key(base64_decode($data->{$this->ratchetDataKey}));
-
-            if ($this->lastReceivedRatchetPublicKey !== null
+            // check for ratchet key, if needed
+            $receivedRatchetPublicKey = property_exists($data, $this->ratchetDataKey)
+                ? new Key($data->{$this->ratchetDataKey})
+                : null;
+            if ($this->lastReceivedRatchetPublicKey === null && $receivedRatchetPublicKey === null) {
+                throw new Exception('Missing ratchet key in message');
+            } else if ($this->lastReceivedRatchetPublicKey !== null
                 && $this->lastReceivedRatchetPublicKey->getValue() !== $receivedRatchetPublicKey->getValue()
             ) {
-                throw new LogicException('Received new ratchet key in response without processing last ratchet key');
+                throw new Exception('Received new ratchet key in response without processing last ratchet key');
             }
 
             // handle double ratchet CASE_2
             if ($this->lastSentRatchetKey !== null) {
-                if ($this->lastSentRatchetKey !== null) {
-                    $this->ratchetRootKey(
-                        $this->lastSentRatchetKey->getPrivateKey(),
-                        $receivedRatchetPublicKey
-                    );
+                $this->ratchetRootKey(
+                    $this->lastSentRatchetKey->getPrivateKey(),
+                    $receivedRatchetPublicKey
+                );
 
-                    $this->lastSentRatchetKey = null;
-                } else {
-                    $this->lastReceivedRatchetPublicKey = $receivedRatchetPublicKey;
-                }
+                $this->lastSentRatchetKey = null;
+            } else if ($receivedRatchetPublicKey !== null) {
+                $this->lastReceivedRatchetPublicKey = $receivedRatchetPublicKey;
             }
         } catch (Exception $e) {
             $this->usePreviousChainKey();
