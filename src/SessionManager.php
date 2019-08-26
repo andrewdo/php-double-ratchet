@@ -147,7 +147,7 @@ final class SessionManager
         $payload = $encrypted . ':' . base64_encode($iv);
 
         // include HMAC
-        return $payload . ':' . base64_encode(hash_hmac(self::HASHING_ALGORITHM, $payload, $secret));
+        return $payload . ':' . base64_encode(hash_hmac(self::HASHING_ALGORITHM, $payload, $secret->getValue()));
     }
 
     /**
@@ -175,7 +175,7 @@ final class SessionManager
 
             // verify HMAC value
             $payload = implode(':', array_slice($parts, 0, 2));
-            $calculatedHmac = base64_encode(hash_hmac(self::HASHING_ALGORITHM, $payload, $secret));
+            $calculatedHmac = base64_encode(hash_hmac(self::HASHING_ALGORITHM, $payload, $secret->getValue()));
 
             Assert::that($calculatedHmac)
                 ->eq($parts[2], 'HMAC value must match');
@@ -206,7 +206,7 @@ final class SessionManager
     {
         $this->previousChainKey = $this->chainKey;
 
-        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue(), 0x1));
+        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue(), true));
 
         return $this->chainKey;
     }
@@ -218,8 +218,8 @@ final class SessionManager
     {
         $this->previousChainKey = $this->chainKey;
 
-        $messageKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), 0x1));
-        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), 0x2));
+        $messageKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), true));
+        $this->chainKey = new Key(hash(self::HASHING_ALGORITHM, $this->chainKey->getValue(), true));
 
         return $messageKey;
     }
@@ -333,7 +333,7 @@ final class SessionManager
         Assert::that(strlen($ratchetSecret))
             ->eq('32', 'Shared ratchet secret must be 32 bytes');
 
-        $this->rootKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue(), $ratchetSecret));
+        $this->rootKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue() . $ratchetSecret, true));
 
         $this->getNextChainKey();
     }
@@ -344,7 +344,7 @@ final class SessionManager
      */
     public function getAsEncryptedString() : string
     {
-        return $this->encrypt($this->ourIdentity->getPrivateKey(), json_encode(get_object_vars($this)));
+        return $this->encrypt($this->ourIdentity->getPrivateKey(), serialize(get_object_vars($this)));
     }
 
     /**
@@ -356,9 +356,9 @@ final class SessionManager
     public static function getFromEncryptedString(Key $secret, string $encryptedAndSerialized) : self
     {
         $decrypted = self::decrypt($secret, $encryptedAndSerialized);
-        $data = json_decode($decrypted, true);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-            throw new Exception('Invalid decrypted payload');
+        $data = unserialize($decrypted);
+        if (!is_array($data)) {
+            throw new Exception('Invalid unserialized data');
         }
 
         $reflection = new ReflectionClass(self::class);
