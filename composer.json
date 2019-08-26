@@ -16,7 +16,8 @@
         "beberlei/assert": "^3.2",
         "deemru/curve25519": "^1.0",
         "leigh/curve25519": "^0.1.0",
-        "psr/log": "^1.1"
+        "psr/log": "^1.1",
+        "fzaninotto/faker": "^1.8"
     },
     "autoload": {
         "psr-4": {
