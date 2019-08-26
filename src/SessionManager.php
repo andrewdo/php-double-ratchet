@@ -292,7 +292,7 @@ final class SessionManager
 
             // check for ratchet key, if needed
             $receivedRatchetPublicKey = property_exists($data, $this->ratchetDataKey)
-                ? new Key($data->{$this->ratchetDataKey})
+                ? new Key(base64_decode($data->{$this->ratchetDataKey}))
                 : null;
             if ($this->lastReceivedRatchetPublicKey === null && $receivedRatchetPublicKey === null) {
                 throw new Exception('Missing ratchet key in message');
