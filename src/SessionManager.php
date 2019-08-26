@@ -337,8 +337,9 @@ final class SessionManager
             self::HASHING_ALGORITHM,
             $this->rootKey->getValue(),
             0,
-            str_pad('', 32, "\0"),$ratchetSecret)
-        );
+            str_pad('', 32, "\0"),
+            $ratchetSecret
+        ));
 
         $this->getNextChainKey();
     }
