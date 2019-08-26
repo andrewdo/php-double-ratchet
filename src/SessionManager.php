@@ -333,7 +333,12 @@ final class SessionManager
         Assert::that(strlen($ratchetSecret))
             ->eq('32', 'Shared ratchet secret must be 32 bytes');
 
-        $this->rootKey = new Key(hash(self::HASHING_ALGORITHM, $this->rootKey->getValue() . $ratchetSecret, true));
+        $this->rootKey = new Key(hash_hkdf(
+            self::HASHING_ALGORITHM,
+            $this->rootKey->getValue(),
+            0,
+            str_pad('', 32, "\0"),$ratchetSecret)
+        );
 
         $this->getNextChainKey();
     }
